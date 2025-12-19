@@ -1,0 +1,33 @@
+name: Sync Fork
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    # Runs at 00:00 every day
+    - cron: '0 * * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v3
+
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          upstream_sync_repo: GoogleCloudPlatform/magic-modules
+          upstream_sync_branch: main
+          target_sync_branch: main
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # Automatically generated, no need to set this
+
+          # Set test_mode to true to run tests without pushing changes
+          test_mode: false
+
+      - name: Timestamp
+        run: date
