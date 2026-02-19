@@ -5,9 +5,7 @@ permissions:
 
 on:
   schedule:
-    # Runs at 00:00 every day
     - cron: '0 * * * *'
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -16,18 +14,44 @@ jobs:
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v3
-
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
-          upstream_sync_repo: GoogleCloudPlatform/magic-modules
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # Automatically generated, no need to set this
+          # We need full history to merge properly
+          fetch-depth: 0 
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-          # Set test_mode to true to run tests without pushing changes
-          test_mode: false
+      - name: Sync Upstream (Exclude .github)
+        run: |
+          # Configure Git Identity
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
 
+          # Add Upstream Remote
+          git remote add upstream https://github.com/GoogleCloudPlatform/magic-modules.git
+          git fetch upstream
+
+          # Merge upstream/main into local branch
+          # --no-commit: Stops git from finalizing the merge automatically
+          # --no-ff: Creates a merge commit to keep history clear
+          # || true: Prevents the workflow from failing if there are conflicts immediately (we handle them next)
+          git merge upstream/main --no-commit --no-ff || true
+
+          # This command forces the .github folder back to the state of YOUR repo (HEAD),
+          # effectively ignoring any changes upstream made to this folder.
+          git checkout HEAD -- .github
+          
+          # Optional: If you have other specific files to ignore, add them here:
+          # git checkout HEAD -- another_file.txt
+
+          # Commit and Push
+          # We check if there are actual changes to commit before pushing
+          if [[ -n $(git status -s) ]]; then
+            echo "Changes detected. Committing..."
+            git add .
+            git commit -m "Sync upstream changes (preserving local .github config)"
+            git push
+          else
+            echo "No changes to sync."
+          fi
+      
       - name: Timestamp
         run: date
