@@ -1,0 +1,21 @@
+resource "google_blockchain_node_engine_blockchain_nodes" "{{$.PrimaryResourceId}}" {
+  location = "us-central1"
+  blockchain_type = "ETHEREUM"
+  blockchain_node_id = "{{index $.Vars "blockchain_node_id"}}"
+  ethereum_details {
+    api_enable_admin = true
+    api_enable_debug = true
+    validator_config {
+      mev_relay_urls = ["https://mev1.example.org/","https://mev2.example.org/"]
+      beacon_fee_recipient = "0x8DB97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+    }
+    node_type = "ARCHIVE"
+    consensus_client = "LIGHTHOUSE"
+    execution_client = "ERIGON"
+    network = "MAINNET"
+  }
+  
+  labels = {
+    environment = "dev"
+  }
+}
