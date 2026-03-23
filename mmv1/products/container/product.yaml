@@ -1,4 +1,4 @@
-# Copyright 2024 Google Inc.
+# Copyright 2026 Google Inc.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,12 +12,12 @@
 # limitations under the License.
 
 ---
-name: 'Workstations'
-display_name: 'Cloud Workstations'
+name: 'Container'
+display_name: 'Kubernetes Engine'
 versions:
   - name: 'ga'
-    base_url: https://workstations.googleapis.com/v1/
+    base_url: 'https://container.googleapis.com/v1/'
   - name: 'beta'
-    base_url: 'https://workstations.googleapis.com/v1beta/'
+    base_url: 'https://container.googleapis.com/v1beta1/'
 scopes:
   - 'https://www.googleapis.com/auth/cloud-platform'
