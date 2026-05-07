@@ -112,7 +112,9 @@ func (tgc TerraformGoogleConversionNext) GenerateObject(object api.Resource, out
 		log.Printf("Error adding examples from handwritten tests: %v", err)
 	}
 
-	tgc.GenerateResourceTests(object, *templateData, outputFolder)
+	if err := tgc.GenerateResourceTests(object, *templateData, outputFolder); err != nil {
+		log.Fatalf("Error generating resource tests: %v", err)
+	}
 }
 
 func (tgc TerraformGoogleConversionNext) GenerateResource(object api.Resource, templateData TemplateData, outputFolder string, generateCode, generateDocs bool) {
@@ -130,16 +132,24 @@ func (tgc TerraformGoogleConversionNext) GenerateResource(object api.Resource, t
 	}
 
 	templatePath := "templates/tgc_next/services/resource.go.tmpl"
-	targetFilePath := path.Join(targetFolder, fmt.Sprintf("%s_%s.go", productName, google.Underscore(object.Name)))
+	fileName := fmt.Sprintf("%s_%s.go", productName, google.Underscore(object.Name))
+	targetFilePath := path.Join(targetFolder, fileName)
 	templateData.GenerateTGCResourceFile(templatePath, targetFilePath, object)
+	tgc.replaceImportPath(targetFolder, fileName)
 }
 
 func (tgc TerraformGoogleConversionNext) GenerateCaiToHclObjects(outputFolder, resourceToGenerate string, generateCode, generateDocs bool) {
 }
 
-func (tgc *TerraformGoogleConversionNext) GenerateResourceTests(object api.Resource, templateData TemplateData, outputFolder string) {
+func (tgc *TerraformGoogleConversionNext) GenerateResourceTests(object api.Resource, templateData TemplateData, outputFolder string) error {
 	if len(object.TGCTests) == 0 {
-		return
+		return fmt.Errorf("No TGC tests for resource %s", object.Name)
+	}
+
+	for _, test := range object.TGCTests {
+		if !strings.HasPrefix(test.Name, "TestAcc") {
+			return fmt.Errorf("TGC test name %s for resource %s does not start with TestAcc", test.Name, object.Name)
+		}
 	}
 
 	productName := tgc.Product.ApiName
@@ -149,6 +159,7 @@ func (tgc *TerraformGoogleConversionNext) GenerateResourceTests(object api.Resou
 	}
 	targetFilePath := path.Join(targetFolder, fmt.Sprintf("%s_%s_generated_test.go", productName, google.Underscore(object.Name)))
 	templateData.GenerateTGCNextTestFile(targetFilePath, object)
+	return nil
 }
 
 // GenerateProduct creates the product.go file for a given service directory.
@@ -261,13 +272,15 @@ func (tgc TerraformGoogleConversionNext) CopyCommonFiles(outputFolder string, ge
 		"pkg/version/version.go":                  "third_party/terraform/version/version.go",
 
 		// services
-		"pkg/services/compute/image.go":             "third_party/terraform/services/compute/image.go",
-		"pkg/services/compute/disk_type.go":         "third_party/terraform/services/compute/disk_type.go",
-		"pkg/services/kms/client.go":                "third_party/terraform/services/kms/client.go",
-		"pkg/services/kms/kms_utils.go":             "third_party/terraform/services/kms/kms_utils.go",
-		"pkg/services/privateca/privateca_utils.go": "third_party/terraform/services/privateca/privateca_utils.go",
-		"pkg/services/eventarc/eventarc_utils.go":   "third_party/terraform/services/eventarc/eventarc_utils.go",
-		"pkg/services/storage/client.go":            "third_party/terraform/services/storage/client.go",
+		"pkg/services/compute/image.go":                 "third_party/terraform/services/compute/image.go",
+		"pkg/services/compute/disk_type.go":             "third_party/terraform/services/compute/disk_type.go",
+		"pkg/services/kms/client.go":                    "third_party/terraform/services/kms/client.go",
+		"pkg/services/kms/kms_utils.go":                 "third_party/terraform/services/kms/kms_utils.go",
+		"pkg/services/privateca/privateca_utils.go":     "third_party/terraform/services/privateca/privateca_utils.go",
+		"pkg/services/eventarc/eventarc_utils.go":       "third_party/terraform/services/eventarc/eventarc_utils.go",
+		"pkg/services/resourcemanager/client/client.go": "third_party/terraform/services/resourcemanager/client/client.go",
+		"pkg/services/resourcemanagerv3/client.go":      "third_party/terraform/services/resourcemanagerv3/client.go",
+		"pkg/services/storage/client.go":                "third_party/terraform/services/storage/client.go",
 	}
 	tgc.CopyFileList(outputFolder, resourceConverters)
 }
